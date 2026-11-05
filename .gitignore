@@ -1,0 +1,12 @@
+.DS_Store
+node_modules/
+*.log
+.env
+.env.*
+!.env.example
+diagnostic-events*.json
+INSTALLATION.json
+PACKAGE-SHA256.json
+dist/
+dist-*/
+*.zip
