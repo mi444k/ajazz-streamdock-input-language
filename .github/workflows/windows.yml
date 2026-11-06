@@ -20,6 +20,8 @@ jobs:
         run: npm test
       - name: Native engine tests
         run: ./tests/test-windows-native.ps1
+      - name: Native read-only protocol checks
+        run: node tests/windows-native-protocol-smoke.cjs
       - uses: actions/upload-artifact@v4
         if: success()
         with:
