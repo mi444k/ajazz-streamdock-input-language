@@ -22,6 +22,8 @@ jobs:
         run: ./tests/test-windows-native.ps1
       - name: Native read-only protocol checks
         run: node tests/windows-native-protocol-smoke.cjs
+      - name: Simulated AJAZZ host integration
+        run: node tests/native-smoke.cjs
       - name: Windows browser visual checks
         run: node tests/windows-render.cjs
       - uses: actions/upload-artifact@v4

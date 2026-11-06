@@ -51,7 +51,7 @@ Keep the folder name and its contents intact. Restart AJAZZ Stream Dock, find th
 
 Requires Windows 10 or newer or macOS 13 or newer and AJAZZ's Node.js 20 plugin host. Standard Stream Dock screen keys and pressable knobs are supported across device families. Development device integration used AJAZZ Stream Dock 2.10.179.426 and an AKP03E revision 2 on macOS. Other models and host versions have not been exhaustively verified.
 
-The macOS helper includes arm64 and x86_64 code; native execution was verified on Apple Silicon, not Intel. It is ad-hoc signed and not notarized. The Windows helper uses the Windows .NET Framework and is not Authenticode-signed. Windows automated build, native protocol and Node behavior checks are separate from real Windows AJAZZ/device acceptance, which has not been performed. Do not interpret simulated host or CI results as physical hardware verification.
+The macOS helper includes arm64 and x86_64 code; native execution was verified on Apple Silicon, not Intel. It is ad-hoc signed and not notarized. Windows requires an installed .NET Framework 4.x. The Windows helper is not Authenticode-signed; it does not execute PowerShell at runtime. Windows automated build, native protocol and Node behavior checks are separate from real Windows AJAZZ/device acceptance, which has not been performed. Do not interpret simulated host or CI results as physical hardware verification.
 
 ## License and attribution
 

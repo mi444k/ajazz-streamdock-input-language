@@ -61,7 +61,7 @@ if (process.argv[2] === '--child') {
                 assert.ok(image?.startsWith('data:image/svg+xml;base64,'));
                 const svg = Buffer.from(image.split(',')[1], 'base64').toString('utf8');
                 const label = /data-role="language"[^>]*>([^<]*)<\/text>/.exec(svg)?.[1];
-                if (/^[A-Z]{2,3}$/.test(label || '')) {
+                if (/^[A-Z]{2,3}$/.test(label || '') || (process.platform === 'win32' && label === '--')) {
                   actualLanguage = label;
                   wakeWhenReady();
                 }
@@ -69,7 +69,7 @@ if (process.argv[2] === '--child') {
             } catch (error) { reject(error); }
           });
         });
-        child = spawn('/Applications/Stream Dock AJAZZ.app/Contents/Helpers/node20', [__filename, '--child', '-port', String(server.address().port), '-pluginUUID', 'native-language-smoke', '-registerEvent', 'registerPlugin', '-info', '{}'], { cwd: path.join(__dirname, '..'), stdio: ['ignore', 'pipe', 'pipe', 'ipc'] });
+        child = spawn(process.execPath, [__filename, '--child', '-port', String(server.address().port), '-pluginUUID', 'native-language-smoke', '-registerEvent', 'registerPlugin', '-info', '{}'], { cwd: path.join(__dirname, '..'), stdio: ['ignore', 'pipe', 'pipe', 'ipc'] });
         child.stderr.on('data', data => { stderr += data; });
         child.on('message', value => {
           if (value.snapshotReply) { replies++; wakeWhenReady(); return; }
@@ -86,7 +86,7 @@ if (process.argv[2] === '--child') {
         });
       });
       await complete;
-      console.log(JSON.stringify({ nativeNode: 'AJAZZ bundled Node20', entry: 'real startPlugin export', nativeHelper: 'actual macOS helper', registration: 'passed', confirmedLanguage: actualLanguage, snapshotReads: snapshots, nativeSelections: 0, wakeRead: 'passed', socketCloseExit: 0, frames }));
+      console.log(JSON.stringify({ nativeNode: process.version, platform: process.platform, entry: 'real startPlugin export', nativeHelper: 'actual platform helper', registration: 'passed', confirmedLanguage: actualLanguage, currentSourceAvailable: actualLanguage !== '--', snapshotReads: snapshots, nativeSelections: 0, wakeRead: 'passed', socketCloseExit: 0, frames }));
     } finally {
       clearTimeout(watchdog);
       if (child && child.exitCode === null) child.kill('SIGTERM');

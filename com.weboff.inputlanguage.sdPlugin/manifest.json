@@ -1,7 +1,7 @@
 {
   "Name": "Input Language by Weboff",
   "Version": "0.2.0",
-  "Description": "Show and cycle enabled macOS keyboard input sources.",
+  "Description": "Show and cycle keyboard input sources on Windows and macOS.",
   "Author": "Weboff",
   "SDKVersion": 1,
   "Icon": "images/icon.png",
@@ -29,7 +29,7 @@
     {
       "UUID": "com.weboff.inputlanguage.cycle",
       "Name": "Input Language",
-      "Tooltip": "Show the current keyboard language. Press to cycle enabled macOS input sources.",
+      "Tooltip": "Show the current keyboard language. Press to cycle available input sources.",
       "Icon": "images/action.png",
       "Controllers": [
         "Keypad",
