@@ -146,3 +146,27 @@ test('CAS conflict rejects safely while preserving the actual separately confirm
     assert.equal(child.writes.length, 2);
   } finally { f.bridge.dispose(); }
 });
+
+test('foreground compare-and-set token comes only from confirmed state and travels with an absolute selection', async () => {
+  const f = fixture();
+  try {
+    const { child } = await f.ready();
+    f.send(child, { ...state(1), targetToken: 'window-a-thread-1' });
+    assert.equal(f.states.at(-1).targetToken, 'window-a-thread-1');
+    const pending = f.bridge.request('select', 'ru', { expectedCurrentId: 'en', expectedTargetToken: 'window-a-thread-1' });
+    await flush();
+    assert.equal(child.writes.at(-1).expectedTargetToken, 'window-a-thread-1');
+    f.send(child, { ...state(2, ru), targetToken: 'window-a-thread-1', id: child.writes.at(-1).id });
+    assert.equal((await pending).current.id, 'ru');
+    const before = child.writes.length;
+    await assert.rejects(() => f.bridge.request('select', 'en', { expectedCurrentId: 'ru', expectedTargetToken: 'bad\nvalue' }));
+    assert.equal(child.writes.length, before, 'an invalid token never crosses the process boundary');
+  } finally { f.bridge.dispose(); }
+});
+
+
+test('native helper startup hides the Windows console so it cannot steal the foreground target', async () => {
+  const f = fixture();
+  try { const { child } = await f.ready(); assert.equal(child.options.windowsHide, true); }
+  finally { f.bridge.dispose(); }
+});

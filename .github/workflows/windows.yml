@@ -1,0 +1,30 @@
+name: Windows helper compatibility
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: com.weboff.inputlanguage.sdPlugin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build Windows helper
+        run: ./scripts/build-windows.ps1
+      - name: Unit tests
+        run: npm test
+      - name: Native engine tests
+        run: ./tests/test-windows-native.ps1
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: input-language-windows-helper
+          path: com.weboff.inputlanguage.sdPlugin/native/input-source-helper.exe
+          retention-days: 1
+          if-no-files-found: error
+

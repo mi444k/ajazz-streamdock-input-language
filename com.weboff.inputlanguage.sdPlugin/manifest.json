@@ -1,6 +1,6 @@
 {
   "Name": "Input Language by Weboff",
-  "Version": "0.1.0",
+  "Version": "0.2.0",
   "Description": "Show and cycle enabled macOS keyboard input sources.",
   "Author": "Weboff",
   "SDKVersion": 1,
@@ -9,18 +9,42 @@
   "CategoryIcon": "images/category.png",
   "CodePath": "src/plugin.js",
   "CodePathMac": "src/plugin.js",
-  "Nodejs": { "Version": "20" },
-  "OS": [{ "Platform": "mac", "MinimumVersion": "13.0" }],
-  "Software": { "MinimumVersion": "2.10.179.426" },
-  "Actions": [{
-    "UUID": "com.weboff.inputlanguage.cycle",
-    "Name": "Input Language",
-    "Tooltip": "Show the current keyboard language. Press to cycle enabled macOS input sources.",
-    "Icon": "images/action.png",
-    "Controllers": ["Keypad", "Knob"],
-    "States": [{ "Image": "images/idle.png", "ShowTitle": false }],
-    "DisableAutomaticStates": true,
-    "UserTitleEnabled": false,
-    "SupportedInMultiActions": false
-  }]
+  "Nodejs": {
+    "Version": "20"
+  },
+  "OS": [
+    {
+      "Platform": "mac",
+      "MinimumVersion": "13.0"
+    },
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
+  ],
+  "Software": {
+    "MinimumVersion": "2.10.179.426"
+  },
+  "Actions": [
+    {
+      "UUID": "com.weboff.inputlanguage.cycle",
+      "Name": "Input Language",
+      "Tooltip": "Show the current keyboard language. Press to cycle enabled macOS input sources.",
+      "Icon": "images/action.png",
+      "Controllers": [
+        "Keypad",
+        "Knob"
+      ],
+      "States": [
+        {
+          "Image": "images/idle.png",
+          "ShowTitle": false
+        }
+      ],
+      "DisableAutomaticStates": true,
+      "UserTitleEnabled": false,
+      "SupportedInMultiActions": false
+    }
+  ],
+  "CodePathWin": "src/plugin.js"
 }

@@ -42,3 +42,10 @@ test('invalid protocol shape, excessive fields and control characters are reject
   const invalid = [null, {}, { ...valid, type: 'target' }, { ...valid, revision: -1 }, { ...valid, revision: 1.5 }, { ...valid, revision: Number.MAX_SAFE_INTEGER + 1 }, { ...valid, id: '../secret' }, { ...valid, id: 'x'.repeat(129) }, { ...valid, sources: Array.from({ length: 257 }, () => en) }, { ...valid, current: { ...en, id: '' } }, { ...valid, current: { ...en, id: 'x'.repeat(1025) } }, { ...valid, current: { ...en, name: 'x'.repeat(1025) } }, { ...valid, current: { ...en, name: 'Bad\nname' } }, { ...valid, current: { ...en, languages: ['x'.repeat(65)] } }, { ...valid, current: { ...en, languages: Array(257).fill('en') } }];
   for (const value of invalid) assert.equal(normalizeState(value), null);
 });
+
+test('Windows foreground target tokens survive sanitization while malformed tokens reject the entire state', () => {
+  const input = { type: 'state', revision: 1, current: en, sources: [en, ru], targetToken: 'foreground-42_a' };
+  assert.equal(normalizeState(input)?.targetToken, 'foreground-42_a');
+  for (const targetToken of ['', 'bad\nvalue', 'x'.repeat(129), 42, null]) assert.equal(normalizeState({ ...input, targetToken }), null);
+  assert.equal(Object.hasOwn(normalizeState({ type: 'state', revision: 1, current: en, sources: [en] }), 'targetToken'), false, 'legacy macOS states remain unchanged');
+});

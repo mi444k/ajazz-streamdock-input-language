@@ -13,7 +13,9 @@ function parseLaunchArgs(args) {
   if (!/^\d+$/.test(rawPort || '') || !Number.isInteger(port) || port < 1 || port > 65535 || !uuid?.trim() || registerEvent !== 'registerPlugin' || !info || typeof info !== 'object' || Array.isArray(info)) throw new Error('Invalid plugin launch arguments.');
   return { port, uuid, registerEvent, info };
 }
-function startPlugin({ args = process.argv.slice(2), WebSocketImpl = require('../vendor/ws'), BridgeImpl = InputSourceBridge, spawnImpl, helperPath = require('node:path').join(__dirname, '../native/input-source-helper') } = {}) {
+function startPlugin({ args = process.argv.slice(2), WebSocketImpl = require('../vendor/ws'), BridgeImpl = InputSourceBridge, spawnImpl, platform = process.platform, helperPath } = {}) {
+  if (!['darwin', 'win32'].includes(platform)) throw new Error('Unsupported operating system.');
+  helperPath = helperPath ?? require('node:path').join(__dirname, '../native/input-source-helper' + (platform === 'win32' ? '.exe' : ''));
   const launch = parseLaunchArgs(args);
   const socket = new WebSocketImpl('ws://127.0.0.1:' + launch.port);
   const bridge = new BridgeImpl({ helperPath, spawnImpl });

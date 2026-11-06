@@ -22,6 +22,7 @@ function nextSourceId(currentId, sources) {
 function normalizeState(value) {
   if (!value || value.type !== 'state' || !Number.isSafeInteger(value.revision) || value.revision < 0 || !Array.isArray(value.sources) || value.sources.length > 256) return null;
   if (value.id !== undefined && (typeof value.id !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(value.id))) return null;
+  if (value.targetToken !== undefined && (typeof value.targetToken !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(value.targetToken))) return null;
   const current = value.current === null ? null : sourceValue(value.current);
   if (value.current !== null && !current) return null;
   const sources = [], ids = new Set();
@@ -30,6 +31,6 @@ function normalizeState(value) {
     if (!clean) return null;
     if (!ids.has(clean.id)) { sources.push(clean); ids.add(clean.id); }
   }
-  return { type: 'state', revision: value.revision, ...(value.id === undefined ? {} : { id: value.id }), current, sources };
+  return { type: 'state', revision: value.revision, ...(value.id === undefined ? {} : { id: value.id }), ...(value.targetToken === undefined ? {} : { targetToken: value.targetToken }), current, sources };
 }
 module.exports = { languageCode, nextSourceId, normalizeState };

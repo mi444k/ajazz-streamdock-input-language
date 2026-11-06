@@ -204,3 +204,24 @@ test('context-free wake refreshes visible keys read-only, coalesces pending wake
     assert.deepEqual(f.calls, [['wake-read']]); assert.equal(f.label(), 'DE');
   } finally { f.plugin.dispose(); }
 });
+
+test('Windows cycle binds the selection to the fresh foreground token and preserves actual state after a focus conflict', async () => {
+  const f = fixture();
+  try {
+    await f.appear(); f.calls.length = 0;
+    f.bridge.request = async (command, sourceId, options) => {
+      f.calls.push([command, sourceId, options]);
+      if (command === 'snapshot') return { ...state(1, en), targetToken: 'foreground-a' };
+      f.bridge.emit('state', { ...state(2, en), targetToken: 'foreground-b' });
+      const error = new Error('The input source changed before selection.'); error.code = 'conflict'; throw error;
+    };
+    await f.press();
+    assert.deepEqual(f.calls, [['snapshot', undefined, undefined], ['select', 'ru', { expectedCurrentId: 'en', expectedTargetToken: 'foreground-a' }]]);
+    assert.equal(f.label(), 'EN');
+    assert.ok(f.sent.some(message => message.event === 'showAlert'));
+    assert.equal(f.calls.length, 2, 'a focus conflict never retries or switches a different foreground application');
+    f.bridge.request = async (command, sourceId, options) => { f.calls.push([command, sourceId, options]); return { ...state(command === 'select' ? 4 : 3, command === 'select' ? ru : en), targetToken: 'foreground-b' }; };
+    await f.press(); assert.equal(f.label(), 'RU', 'a later explicit press can recover using a new snapshot');
+    assert.equal(f.calls.at(-1)[2].expectedTargetToken, 'foreground-b');
+  } finally { f.plugin.dispose(); }
+});

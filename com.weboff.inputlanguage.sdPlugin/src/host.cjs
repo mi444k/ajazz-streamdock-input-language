@@ -55,7 +55,7 @@ class HostPlugin {
       const confirmed = this.confirm(snapshot);
       const sourceId = nextSourceId(confirmed.current?.id, confirmed.sources);
       if (sourceId === null) return;
-      const result = await this.bridge.request('select', sourceId, { expectedCurrentId: confirmed.current?.id ?? null });
+      const result = await this.bridge.request('select', sourceId, { expectedCurrentId: confirmed.current?.id ?? null, ...(confirmed.targetToken === undefined ? {} : { expectedTargetToken: confirmed.targetToken }) });
       if (!this.disposed && epoch === this.epoch) {
         const actual = this.confirm(result);
         if (actual?.current?.id !== sourceId) this.send({ event: 'showAlert', context });

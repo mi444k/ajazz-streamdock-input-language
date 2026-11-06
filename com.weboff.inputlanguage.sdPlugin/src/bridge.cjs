@@ -5,7 +5,7 @@ const { normalizeState } = require('./core.cjs');
 const MESSAGES = {
   unavailable: 'Input source helper is unavailable.', timeout: 'Input source request timed out.',
   protocol: 'Input source helper returned an invalid response.', closed: 'Input source helper is closed.',
-  invalid_command: 'Invalid input source command.', select_failed: 'macOS could not select this input source.',
+  invalid_command: 'Invalid input source command.', select_failed: 'The operating system could not select this input source.',
   conflict: 'The input source changed. Press again to choose the next source.'
 };
 function safeError(code) {
@@ -31,7 +31,7 @@ class InputSourceBridge extends EventEmitter {
     return promise;
   }
   launch() {
-    const child = this.spawnImpl(this.helperPath, [], { stdio: ['pipe', 'pipe', 'ignore'], shell: false });
+    const child = this.spawnImpl(this.helperPath, [], { stdio: ['pipe', 'pipe', 'ignore'], shell: false, windowsHide: true });
     this.child = child; this.state = null;
     const generation = ++this.generation;
     const current = () => this.child === child && this.generation === generation && !this.disposed;
@@ -83,6 +83,7 @@ class InputSourceBridge extends EventEmitter {
     if (this.disposed) throw safeError('closed');
     if (!['snapshot', 'select'].includes(command)) throw safeError('invalid_command');
     if (command === 'select' && (!validId(sourceId) || !Object.hasOwn(options, 'expectedCurrentId') || (options.expectedCurrentId !== null && !validId(options.expectedCurrentId)))) throw safeError('invalid_command');
+    if (command === 'select' && Object.hasOwn(options, 'expectedTargetToken') && (typeof options.expectedTargetToken !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(options.expectedTargetToken))) throw safeError('invalid_command');
     if (!this.child) {
       if (command !== 'snapshot') throw safeError('unavailable');
       try { this.launch(); } catch { this.fail(safeError('unavailable')); throw safeError('unavailable'); }
@@ -91,7 +92,7 @@ class InputSourceBridge extends EventEmitter {
     return new Promise((resolve, reject) => {
       const timer = this.setTimeoutImpl(() => this.fail(safeError('timeout')), this.timeoutMs);
       this.pending.set(id, { resolve, reject, timer });
-      try { this.child.stdin.write(JSON.stringify({ id, command, ...(command === 'select' ? { sourceId, expectedCurrentId: options.expectedCurrentId } : {}) }) + '\n'); }
+      try { this.child.stdin.write(JSON.stringify({ id, command, ...(command === 'select' ? { sourceId, expectedCurrentId: options.expectedCurrentId, ...(options.expectedTargetToken === undefined ? {} : { expectedTargetToken: options.expectedTargetToken }) } : {}) }) + '\n'); }
       catch { this.fail(safeError('unavailable')); }
     });
   }
