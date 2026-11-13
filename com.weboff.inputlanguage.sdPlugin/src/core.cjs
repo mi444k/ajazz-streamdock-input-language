@@ -17,12 +17,13 @@ const NAME_LIMIT = 12;
 function displayLabel(source) {
   const code = languageCode(source);
   if (code !== '--') return code;
-  // Control and format characters (tabs, newlines, bidi overrides, zero-width) become spaces.
-  const name = typeof source?.name === 'string' ? source.name.replace(/[\p{Cc}\p{Cf}]/gu, ' ').replace(/\s+/gu, ' ').trim() : '';
+  // Control and format characters (tabs, newlines, bidi overrides) become spaces; ZWNJ/ZWJ stay because
+  // Persian, Indic scripts and emoji sequences need them.
+  const name = typeof source?.name === 'string' ? source.name.replace(/(?![\u200C\u200D])[\p{Cc}\p{Cf}]/gu, ' ').replace(/\s+/gu, ' ').trim() : '';
   if (!name) return '--';
   // Count visible characters (grapheme clusters) so accents and flags are never split.
   const characters = Array.from(new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(name), part => part.segment);
-  return characters.length <= NAME_LIMIT ? name : characters.slice(0, NAME_LIMIT - 1).join('') + '…';
+  return characters.length <= NAME_LIMIT ? name : characters.slice(0, NAME_LIMIT - 1).join('') + '\u2026';
 }
 function nextSourceId(currentId, sources) {
   if (!Array.isArray(sources) || sources.length > 256) return null;

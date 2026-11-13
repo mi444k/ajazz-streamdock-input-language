@@ -250,7 +250,7 @@ test('a source without a language tag is labelled with its system name', async (
   try {
     await f.appear('a');
     f.bridge.emit('state', state(4, { id: 'hex', name: 'Unicode Hex Input', languages: [] }, [en, { id: 'hex', name: 'Unicode Hex Input', languages: [] }]));
-    assert.equal(f.label(), 'Unicode Hex…');
+    assert.equal(f.label(), 'Unicode Hex\u2026');
   } finally { f.plugin.dispose(); }
 });
 

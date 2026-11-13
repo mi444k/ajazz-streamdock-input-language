@@ -16,19 +16,26 @@ test('the key label is the language code when the source has a valid language ta
 });
 
 test('sources without a usable language tag show their system name instead of a placeholder', () => {
-  assert.equal(displayLabel({ id: 'hex', name: 'Unicode Hex Input', languages: [] }), 'Unicode Hex…');
-  assert.equal(displayLabel({ id: 'kotoeri', name: 'ことえり', languages: ['invalid'] }), 'ことえり');
+  assert.equal(displayLabel({ id: 'hex', name: 'Unicode Hex Input', languages: [] }), 'Unicode Hex\u2026');
+  assert.equal(displayLabel({ id: 'kotoeri', name: '\u3053\u3068\u3048\u308a', languages: ['invalid'] }), '\u3053\u3068\u3048\u308a');
   assert.equal(displayLabel({ id: 'custom', name: '  My Layout  ', languages: ['mul'] }), 'My Layout');
   assert.equal(displayLabel({ id: 'exact', name: 'TwelveChars!', languages: [] }), 'TwelveChars!');
-  assert.equal(displayLabel({ id: 'emoji', name: '😀😀😀😀😀😀😀😀😀😀😀😀😀', languages: [] }), '😀😀😀😀😀😀😀😀😀😀😀…');
+  assert.equal(displayLabel({ id: 'emoji', name: '\u{1F600}'.repeat(13), languages: [] }), '\u{1F600}'.repeat(11) + '\u2026');
 });
 
 test('name fallback truncates whole visible characters and removes control and format characters', () => {
   const accented = 'Cafe\u0301 Layout Extended';
-  assert.equal(displayLabel({ id: 'a', name: accented, languages: [] }), 'Cafe\u0301 Layout…');
-  const flags = '🇩🇪🇩🇪🇩🇪🇩🇪🇩🇪🇩🇪🇩🇪🇩🇪🇩🇪🇩🇪🇩🇪🇩🇪🇩🇪';
-  assert.equal(displayLabel({ id: 'f', name: flags, languages: [] }), '🇩🇪'.repeat(11) + '…');
+  assert.equal(displayLabel({ id: 'a', name: accented, languages: [] }), 'Cafe\u0301 Layout\u2026');
+  const keycap = '1\uFE0F\u20E3';
+  assert.equal(displayLabel({ id: 'k', name: keycap.repeat(13), languages: [] }), keycap.repeat(11) + '\u2026');
   assert.equal(displayLabel({ id: 'c', name: 'A\tB\u202eC\u200bD', languages: [] }), 'A B C D');
+});
+
+test('joiners that are part of real text survive the name clean-up', () => {
+  const persian = '\u0641\u0627\u0631\u0633\u06cc\u200c\u0647\u0627';
+  assert.equal(displayLabel({ id: 'p', name: persian, languages: [] }), persian);
+  const technologist = '\u{1F469}\u200D\u{1F4BB}';
+  assert.equal(displayLabel({ id: 't', name: technologist + ' Layout', languages: [] }), technologist + ' Layout');
 });
 
 test('a missing source or a blank name without a tag still shows the unknown placeholder', () => {
