@@ -1,5 +1,6 @@
 'use strict';
 // Visual acceptance on actual Windows Chrome; all source states are synthetic.
+// Since 0.3.0 the language is a native Stream Dock title, so the key background must render with no text.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -12,7 +13,7 @@ assert.equal(process.platform, 'win32', 'Actual Windows rendering is required.')
 const chrome = [process.env.CHROME_PATH, ...[process.env.ProgramFiles, process.env['ProgramFiles(x86)'], process.env.LOCALAPPDATA].filter(Boolean).map(root => path.join(root, 'Google/Chrome/Application/chrome.exe'))].find(file => file && fs.existsSync(file));
 assert.ok(chrome, 'Windows Google Chrome is required.');
 (async () => {
-  const images = [];
+  const images = [], titles = [];
   for (const code of ['en', 'ru', 'de', 'fil', null]) {
     const bridge = new EventEmitter(), sent = [];
     bridge.start = async () => ({ type: 'state', revision: 1, current: code ? { id: code, name: 'Example source', languages: [code] } : null, sources: [] });
@@ -22,6 +23,7 @@ assert.ok(chrome, 'Windows Google Chrome is required.');
       await host.handle({ event: 'willAppear', action: 'com.weboff.inputlanguage.cycle', context: 'visual-key', payload: {} });
       const uri = sent.filter(value => value.event === 'setImage').at(-1).payload.image;
       images.push(Buffer.from(uri.split(',')[1], 'base64').toString('utf8'));
+      titles.push(sent.filter(value => value.event === 'setTitle').at(-1).payload.title);
     } finally { host.dispose(); }
   }
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'input-language-render-'));
@@ -32,9 +34,9 @@ assert.ok(chrome, 'Windows Google Chrome is required.');
     const result = spawnSync(chrome, ['--headless', '--no-first-run', `--user-data-dir=${path.join(temporary, 'profile')}`, '--dump-dom', '--virtual-time-budget=10000', '--window-size=960,350', `--screenshot=${path.join(output, 'input-language-windows.png')}`, pathToFileURL(input).href], { encoding: 'utf8', timeout: 30000, maxBuffer: 1024 * 1024, windowsHide: true });
     assert.ifError(result.error); assert.equal(result.status, 0);
     const match = result.stdout.match(/<pre id="result">([^<]+)<\/pre>/); assert.ok(match);
-    const data = JSON.parse(match[1].replace(/&quot;/g, '"').replace(/&amp;/g, '&')); assert.equal(data.ready, true); assert.equal(data.rows.length, 20);
-    for (const row of data.rows) for (const [key, value] of Object.entries(row)) assert.ok(Number.isFinite(value) && value >= -0.05 && value <= 64.05, 'Rendered ' + key + ' stays inside the key.');
+    const data = JSON.parse(match[1].replace(/&quot;/g, '"').replace(/&amp;/g, '&')); assert.equal(data.ready, true); assert.equal(data.rows.length, 0, 'The background carries no text; the label is a native title.');
+    assert.deepEqual(titles, ['EN', 'RU', 'DE', 'FIL', '--']);
     assert.ok(fs.statSync(path.join(output, 'input-language-windows.png')).size > 0);
-    console.log(JSON.stringify({ platform: process.platform, syntheticCodes: 5, measuredTextRows: data.rows.length, allBoundsInside64: true, screenshot: 'input-language-windows.png' }));
+    console.log(JSON.stringify({ platform: process.platform, syntheticCodes: 5, titles, textNodesInBackground: data.rows.length, screenshot: 'input-language-windows.png' }));
   } finally { fs.rmSync(temporary, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); }
 })().catch(error => { console.error(error.message); process.exitCode = 1; });

@@ -22,13 +22,16 @@ function fixture() {
   const plugin = new HostPlugin({ uuid: 'language-instance', send: value => sent.push(value), bridge });
   const appear = (context = 'a', controller = 'Keypad') => plugin.handle({ event: 'willAppear', context, action, payload: { controller, settings: {} } });
   const press = (context = 'a', event = 'keyUp', suppliedAction = action) => plugin.handle({ event, context, action: suppliedAction });
+  // The language is shown as the native Stream Dock title so any script renders with system fonts.
   function label(context = 'a') {
-    const image = sent.filter(value => value.event === 'setImage' && value.context === context).at(-1)?.payload.image;
-    if (typeof image !== 'string' || !image.startsWith('data:image/svg+xml;base64,')) return null;
-    const svg = Buffer.from(image.split(',')[1], 'base64').toString('utf8');
-    return /<text\b[^>]*data-role="language"[^>]*>([^<]*)<\/text>/.exec(svg)?.[1];
+    const title = sent.filter(value => value.event === 'setTitle' && value.context === context).at(-1)?.payload.title;
+    return typeof title === 'string' ? title : null;
   }
-  return { plugin, bridge, sent, calls, appear, press, label };
+  function image(context = 'a') {
+    const value = sent.filter(item => item.event === 'setImage' && item.context === context).at(-1)?.payload.image;
+    return typeof value === 'string' && value.startsWith('data:image/svg+xml;base64,') ? Buffer.from(value.split(',')[1], 'base64').toString('utf8') : null;
+  }
+  return { plugin, bridge, sent, calls, appear, press, label, image };
 }
 
 test('connection registers only this plugin, with no credential or account settings requests', async () => {
@@ -46,7 +49,7 @@ test('visible keys share native startup and all receive external source updates 
     f.bridge.emit('state', state(2, ru));
     assert.equal(f.label('a'), 'RU'); assert.equal(f.label('b'), 'RU');
     const count = f.calls.length; f.plugin.tick(); f.plugin.tick(); assert.equal(f.calls.length, count);
-    assert.ok(f.sent.filter(value => value.event === 'setTitle').every(value => value.payload.title === ''));
+    assert.ok(f.image('a') && !/<text\b/.test(f.image('a')), 'the key background carries no baked-in text');
     await f.plugin.handle({ event: 'willDisappear', context: 'b', action });
     const before = f.sent.filter(value => value.context === 'b').length;
     f.bridge.emit('state', state(3, de)); assert.equal(f.label('a'), 'DE');
@@ -223,5 +226,78 @@ test('Windows cycle binds the selection to the fresh foreground token and preser
     f.bridge.request = async (command, sourceId, options) => { f.calls.push([command, sourceId, options]); return { ...state(command === 'select' ? 4 : 3, command === 'select' ? ru : en), targetToken: 'foreground-b' }; };
     await f.press(); assert.equal(f.label(), 'RU', 'a later explicit press can recover using a new snapshot');
     assert.equal(f.calls.at(-1)[2].expectedTargetToken, 'foreground-b');
+  } finally { f.plugin.dispose(); }
+});
+
+test('the language label is sent as a native title and the background is only resent when availability changes', async () => {
+  const f = fixture();
+  try {
+    await f.appear('a');
+    const images = () => f.sent.filter(value => value.event === 'setImage' && value.context === 'a').length;
+    assert.equal(f.label(), 'EN'); assert.equal(images(), 1);
+    f.bridge.emit('state', state(5, ru)); f.bridge.emit('state', state(6, de));
+    assert.equal(f.label(), 'DE'); assert.equal(images(), 1, 'a language change only updates the title');
+    const titles = f.sent.filter(value => value.event === 'setTitle').length;
+    f.plugin.tick(); assert.equal(f.sent.filter(value => value.event === 'setTitle').length, titles, 'an unchanged label is not resent');
+    f.bridge.emit('fault', Object.assign(new Error('Helper unavailable.'), { code: 'unavailable' }));
+    assert.equal(f.label(), '--'); assert.equal(images(), 2, 'unavailability switches to the warning background');
+    assert.notEqual(f.image(), null); assert.ok(!/<text\b/.test(f.image()));
+  } finally { f.plugin.dispose(); }
+});
+
+test('a source without a language tag is labelled with its system name', async () => {
+  const f = fixture();
+  try {
+    await f.appear('a');
+    f.bridge.emit('state', state(4, { id: 'hex', name: 'Unicode Hex Input', languages: [] }, [en, { id: 'hex', name: 'Unicode Hex Input', languages: [] }]));
+    assert.equal(f.label(), 'Unicode Hex…');
+  } finally { f.plugin.dispose(); }
+});
+
+test('a title change made in Stream Dock makes the plugin resend its current label', async () => {
+  const f = fixture();
+  try {
+    await f.appear('a');
+    const count = () => f.sent.filter(value => value.event === 'setTitle' && value.context === 'a').length;
+    const before = count();
+    await f.plugin.handle({ event: 'titleParametersDidChange', context: 'a', action, payload: { title: '', titleParameters: {} } });
+    assert.equal(count(), before + 1); assert.equal(f.label(), 'EN');
+    await f.plugin.handle({ event: 'titleParametersDidChange', context: 'unknown', action, payload: { title: '' } });
+    assert.equal(count(), before + 1);
+  } finally { f.plugin.dispose(); }
+});
+
+test('recovery after a helper fault restores the normal background and the confirmed label', async () => {
+  const f = fixture();
+  try {
+    await f.appear('a');
+    const normal = f.image();
+    f.bridge.emit('fault', Object.assign(new Error('Helper unavailable.'), { code: 'unavailable' }));
+    assert.notEqual(f.image(), normal); assert.equal(f.label(), '--');
+    f.bridge.emit('state', state(10, ru));
+    assert.equal(f.image(), normal); assert.equal(f.label(), 'RU');
+  } finally { f.plugin.dispose(); }
+});
+
+test('a key that disappears and reappears receives its background and label again', async () => {
+  const f = fixture();
+  try {
+    await f.appear('a');
+    await f.plugin.handle({ event: 'willDisappear', context: 'a', action });
+    const before = f.sent.length;
+    await f.appear('a');
+    const resent = f.sent.slice(before).filter(value => value.context === 'a').map(value => value.event);
+    assert.ok(resent.includes('setImage')); assert.ok(resent.includes('setTitle')); assert.equal(f.label(), 'EN');
+  } finally { f.plugin.dispose(); }
+});
+
+test('the echo of the plugin\'s own title does not trigger another setTitle, so no title loop can form', async () => {
+  const f = fixture();
+  try {
+    await f.appear('a');
+    const count = () => f.sent.filter(value => value.event === 'setTitle' && value.context === 'a').length;
+    const before = count();
+    for (let i = 0; i < 3; i++) await f.plugin.handle({ event: 'titleParametersDidChange', context: 'a', action, payload: { title: 'EN', titleParameters: {} } });
+    assert.equal(count(), before);
   } finally { f.plugin.dispose(); }
 });

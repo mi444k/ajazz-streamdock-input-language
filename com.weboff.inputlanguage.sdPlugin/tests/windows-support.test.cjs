@@ -16,8 +16,8 @@ test('the release manifest exposes a Windows 10 Node20 entry alongside the suppo
   assert.equal(manifest.Nodejs.Version, '20');
   assert.equal(manifest.CodePathWin, 'src/plugin.js');
   assert.ok(fs.existsSync(path.join(root, manifest.CodePathWin)));
-  assert.equal(manifest.Version, '0.2.0');
-  assert.equal(JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version, '0.2.0');
+  assert.equal(manifest.Version, '0.3.0');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version, '0.3.0');
   assert.ok(manifest.Actions.every(action => !action.OS || action.OS.includes('windows')));
 });
 
@@ -58,4 +58,11 @@ test('entry chooses the native helper for the actual platform and rejects unsupp
   const before = allocations;
   assert.throws(() => launch('unsupported-os'), 'unsupported systems fail rather than trying to execute a macOS binary');
   assert.equal(allocations, before, 'unsupported launch must not allocate a socket');
+});
+
+test('the action shows a user-stylable native title for the language label', () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'manifest.json'), 'utf8'));
+  const action = manifest.Actions.find(value => value.UUID === 'com.weboff.inputlanguage.cycle');
+  assert.equal(action.UserTitleEnabled, true);
+  assert.ok(action.States.every(state => state.ShowTitle === true));
 });

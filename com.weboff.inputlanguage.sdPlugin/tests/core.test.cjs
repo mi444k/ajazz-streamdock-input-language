@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { languageCode, nextSourceId, normalizeState } = require('../src/core.cjs');
+const { languageCode, displayLabel, nextSourceId, normalizeState } = require('../src/core.cjs');
 const en = { id: 'english', name: 'English', languages: ['en-US'] };
 const ru = { id: 'russian', name: 'Russian', languages: ['ru'] };
 const de = { id: 'german', name: 'German', languages: ['de-DE'] };
@@ -9,6 +9,30 @@ const de = { id: 'german', name: 'German', languages: ['de-DE'] };
 test('display language uses only the primary BCP47 language, including two and three letter codes', () => {
   for (const [tag, code] of [['en-US', 'EN'], ['ru', 'RU'], ['de-CH', 'DE'], ['zh-Hans', 'ZH'], ['fil-PH', 'FIL']]) assert.equal(languageCode({ languages: [tag] }), code);
   for (const source of [null, {}, { id: 'russian', name: 'Russian', languages: [] }, { languages: ['', 'en'] }, { languages: ['invalid', 'ru'] }, { languages: ['en_US'] }]) assert.equal(languageCode(source), '--');
+});
+
+test('the key label is the language code when the source has a valid language tag', () => {
+  for (const [tag, code] of [['en-US', 'EN'], ['ru', 'RU'], ['zh-Hant', 'ZH'], ['fil-PH', 'FIL']]) assert.equal(displayLabel({ id: 'x', name: 'Any name', languages: [tag] }), code);
+});
+
+test('sources without a usable language tag show their system name instead of a placeholder', () => {
+  assert.equal(displayLabel({ id: 'hex', name: 'Unicode Hex Input', languages: [] }), 'Unicode Hex…');
+  assert.equal(displayLabel({ id: 'kotoeri', name: 'ことえり', languages: ['invalid'] }), 'ことえり');
+  assert.equal(displayLabel({ id: 'custom', name: '  My Layout  ', languages: ['mul'] }), 'My Layout');
+  assert.equal(displayLabel({ id: 'exact', name: 'TwelveChars!', languages: [] }), 'TwelveChars!');
+  assert.equal(displayLabel({ id: 'emoji', name: '😀😀😀😀😀😀😀😀😀😀😀😀😀', languages: [] }), '😀😀😀😀😀😀😀😀😀😀😀…');
+});
+
+test('name fallback truncates whole visible characters and removes control and format characters', () => {
+  const accented = 'Cafe\u0301 Layout Extended';
+  assert.equal(displayLabel({ id: 'a', name: accented, languages: [] }), 'Cafe\u0301 Layout…');
+  const flags = '🇩🇪🇩🇪🇩🇪🇩🇪🇩🇪🇩🇪🇩🇪🇩🇪🇩🇪🇩🇪🇩🇪🇩🇪🇩🇪';
+  assert.equal(displayLabel({ id: 'f', name: flags, languages: [] }), '🇩🇪'.repeat(11) + '…');
+  assert.equal(displayLabel({ id: 'c', name: 'A\tB\u202eC\u200bD', languages: [] }), 'A B C D');
+});
+
+test('a missing source or a blank name without a tag still shows the unknown placeholder', () => {
+  for (const source of [null, undefined, {}, { id: 'blank', name: '   ', languages: [] }]) assert.equal(displayLabel(source), '--');
 });
 
 test('cycling uses actual source IDs in order, wraps, and preserves two distinct sources sharing one language', () => {

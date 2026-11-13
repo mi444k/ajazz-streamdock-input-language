@@ -1,6 +1,6 @@
 {
   "Name": "Input Language by Weboff",
-  "Version": "0.2.0",
+  "Version": "0.3.0",
   "Description": "Show and cycle keyboard input sources on Windows and macOS.",
   "Author": "Weboff",
   "SDKVersion": 1,
@@ -38,11 +38,15 @@
       "States": [
         {
           "Image": "images/idle.png",
-          "ShowTitle": false
+          "ShowTitle": true,
+          "FontSize": "22",
+          "FontStyle": "Bold",
+          "TitleAlignment": "middle",
+          "TitleColor": "#F5FBFF"
         }
       ],
       "DisableAutomaticStates": true,
-      "UserTitleEnabled": false,
+      "UserTitleEnabled": true,
       "SupportedInMultiActions": false
     }
   ],

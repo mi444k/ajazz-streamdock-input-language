@@ -1,12 +1,12 @@
 # Input Language for AJAZZ Stream Dock
 
-Current version: **0.2.0**. Independent community plugin by Weboff.
+Current version: **0.3.0**. Independent community plugin by Weboff.
 
 Display and cycle keyboard input languages on Windows and macOS from an AJAZZ key or pressable knob.
 
 ## Features
 
-- Large primary language codes such as EN, RU and DE; unknown metadata shows --.
+- Primary language codes such as EN, RU and DE shown as a native Stream Dock title, so any script renders with system fonts; change font, size, colour and position in the key's title settings. A source without a language tag shows its system name (up to 12 characters). The plugin owns the title text: a custom title typed in Stream Dock is replaced by the live language.
 - External source changes refresh visible keys: native notifications on macOS and foreground-layout metadata checks on Windows.
 - A fresh snapshot and conditional selection prevent optimistic or stale language labels.
 - Separate source IDs remain separate choices even when their primary languages match.

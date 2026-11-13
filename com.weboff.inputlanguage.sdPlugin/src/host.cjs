@@ -1,9 +1,9 @@
 'use strict';
-const { languageCode, nextSourceId, normalizeState } = require('./core.cjs');
+const { displayLabel, nextSourceId, normalizeState } = require('./core.cjs');
 const ACTION = 'com.weboff.inputlanguage.cycle';
-function keyImage(code, failed) {
-  const size = code.length > 2 ? 20 : 30;
-  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><defs><linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#10253a"/><stop offset="1" stop-color="#244b69"/></linearGradient></defs><rect width="64" height="64" fill="url(#background)"/><text data-role="language" x="32" y="41" text-anchor="middle" font-family="Avenir Next, Trebuchet MS, sans-serif" font-weight="700" font-size="' + size + '" textLength="' + (code === '--' ? 30 : 46) + '" lengthAdjust="spacingAndGlyphs" fill="#f5fbff">' + code + '</text><text x="32" y="57" text-anchor="middle" font-family="Avenir Next, Trebuchet MS, sans-serif" font-size="7" textLength="52" lengthAdjust="spacingAndGlyphs" fill="' + (failed ? '#ffb8b0' : '#b3cddd') + '">' + (failed ? 'Unavailable' : 'Input language') + '</text></svg>';
+// Text-free key background; the language itself is the native Stream Dock title.
+function keyImage(failed) {
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><defs><linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop stop-color="' + (failed ? '#3a1414' : '#10253a') + '"/><stop offset="1" stop-color="' + (failed ? '#6b2a24' : '#244b69') + '"/></linearGradient></defs><rect width="64" height="64" fill="url(#background)"/></svg>';
   return 'data:image/svg+xml;base64,' + Buffer.from(svg, 'utf8').toString('base64');
 }
 class HostPlugin {
@@ -89,6 +89,12 @@ class HostPlugin {
       this.visible.set(message.context, { controller: typeof message.payload?.controller === 'string' ? message.payload.controller : 'Keypad' });
       this.tick(); await this.ensureStarted();
     } else if (message.event === 'willDisappear') this.visible.delete(message.context);
+    else if (message.event === 'titleParametersDidChange') {
+      // The user edited the title in Stream Dock; reassert the live language label.
+      const item = this.visible.get(message.context);
+      // Ignore the echo of our own setTitle so the two cannot loop.
+      if (item && message.payload?.title !== item.lastTitle) { delete item.lastTitle; this.tick(); }
+    }
     else {
       const item = this.visible.get(message.context);
       if (!item) return;
@@ -97,12 +103,11 @@ class HostPlugin {
   }
   tick() {
     if (this.disposed) return;
-    const image = keyImage(languageCode(this.state?.current), this.failed);
+    const image = keyImage(this.failed);
+    const title = this.failed ? '--' : displayLabel(this.state?.current);
     for (const [context, item] of this.visible) {
-      if (item.lastImage === image) continue;
-      this.send({ event: 'setTitle', context, payload: { title: '', target: 0 } });
-      this.send({ event: 'setImage', context, payload: { image, target: 0 } });
-      item.lastImage = image;
+      if (item.lastImage !== image) { this.send({ event: 'setImage', context, payload: { image, target: 0 } }); item.lastImage = image; }
+      if (item.lastTitle !== title) { this.send({ event: 'setTitle', context, payload: { title, target: 0 } }); item.lastTitle = title; }
     }
   }
   dispose() {

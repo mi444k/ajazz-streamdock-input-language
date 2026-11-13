@@ -12,6 +12,18 @@ function languageCode(source) {
   const primary = tag.split('-')[0].toUpperCase();
   return ['UND', 'MUL', 'ZXX'].includes(primary) ? '--' : primary;
 }
+const NAME_LIMIT = 12;
+// Key label: the primary language code when the OS provides a tag, otherwise the source's own name.
+function displayLabel(source) {
+  const code = languageCode(source);
+  if (code !== '--') return code;
+  // Control and format characters (tabs, newlines, bidi overrides, zero-width) become spaces.
+  const name = typeof source?.name === 'string' ? source.name.replace(/[\p{Cc}\p{Cf}]/gu, ' ').replace(/\s+/gu, ' ').trim() : '';
+  if (!name) return '--';
+  // Count visible characters (grapheme clusters) so accents and flags are never split.
+  const characters = Array.from(new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(name), part => part.segment);
+  return characters.length <= NAME_LIMIT ? name : characters.slice(0, NAME_LIMIT - 1).join('') + '…';
+}
 function nextSourceId(currentId, sources) {
   if (!Array.isArray(sources) || sources.length > 256) return null;
   const ids = [];
@@ -33,4 +45,4 @@ function normalizeState(value) {
   }
   return { type: 'state', revision: value.revision, ...(value.id === undefined ? {} : { id: value.id }), ...(value.targetToken === undefined ? {} : { targetToken: value.targetToken }), current, sources };
 }
-module.exports = { languageCode, nextSourceId, normalizeState };
+module.exports = { languageCode, displayLabel, nextSourceId, normalizeState };

@@ -64,11 +64,11 @@ test('socket close or failure disposes the bridge exactly once and ignores later
 
 test('manifest exposes one macOS Node20 action with keypad and knob support and existing assets', () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '../manifest.json'), 'utf8'));
-  assert.equal(manifest.Version, '0.2.0'); assert.equal(manifest.Actions.length, 1);
+  assert.equal(manifest.Version, '0.3.0'); assert.equal(manifest.Actions.length, 1);
   assert.equal(manifest.Nodejs.Version, '20'); assert.equal(manifest.CodePath, 'src/plugin.js');
   assert.ok(manifest.OS.some(value => value.Platform === 'mac' && value.MinimumVersion === '13.0'));
   const action = manifest.Actions[0]; assert.equal(action.UUID, 'com.weboff.inputlanguage.cycle');
   assert.deepEqual([...action.Controllers].sort(), ['Keypad', 'Knob']);
-  assert.ok(action.States.length > 0); assert.ok(action.States.every(state => state.ShowTitle === false));
+  assert.ok(action.States.length > 0); assert.ok(action.States.every(state => state.ShowTitle === true));
   for (const file of [manifest.CodePath, manifest.Icon, manifest.CategoryIcon, action.Icon, ...action.States.map(state => state.Image)]) assert.ok(typeof file === 'string' && fs.existsSync(path.join(__dirname, '..', file)), String(file));
 });

@@ -56,12 +56,10 @@ if (process.argv[2] === '--child') {
                 connection.send('{invalid');
                 connection.send(JSON.stringify({ event: 'willAppear', context: 'language-key', action: 'com.weboff.inputlanguage.cycle', payload: { controller: 'Keypad', settings: {} } }));
               }
-              if (message.event === 'setImage') {
-                const image = message.payload?.image;
-                assert.ok(image?.startsWith('data:image/svg+xml;base64,'));
-                const svg = Buffer.from(image.split(',')[1], 'base64').toString('utf8');
-                const label = /data-role="language"[^>]*>([^<]*)<\/text>/.exec(svg)?.[1];
-                if (/^[A-Z]{2,3}$/.test(label || '') || (process.platform === 'win32' && label === '--')) {
+              if (message.event === 'setImage') assert.ok(message.payload?.image?.startsWith('data:image/svg+xml;base64,'));
+              if (message.event === 'setTitle') {
+                const label = message.payload?.title;
+                if ((typeof label === 'string' && label !== '--' && label.length > 0) || (process.platform === 'win32' && label === '--')) {
                   actualLanguage = label;
                   wakeWhenReady();
                 }
